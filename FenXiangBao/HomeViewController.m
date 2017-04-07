@@ -83,9 +83,17 @@ typedef void(^CallBack)(NSDictionary*);
     self.RefreshBtn.layer.borderWidth = 1;
     
     self.RequestTimeOutView.hidden = YES;
-    self.bgView.hidden = YES;
+    self.bgView.hidden = NO;
+    [self.indicatorView startAnimating];
+    
+    //手动查找登录账号信息
+//    if (self.backJsonStr && self.backJsonStr.length > 0){
+//        
+//    }else{
+//        [self getAccountInfo];
+//    }
 }
-
+//设置webView、url
 -(void)setWebViewUrl:(NSString *)urlStr{
 //    NSString* path = [[NSBundle mainBundle] pathForResource:@"test1" ofType:@"html"];
 //    NSURL* url = [NSURL fileURLWithPath:path];
@@ -109,13 +117,15 @@ typedef void(^CallBack)(NSDictionary*);
 #pragma mark 刷新
 - (IBAction)refresh:(id)sender {
     if (self.currentRequest) {
+        self.bgView.hidden = NO;
+        [self.indicatorView startAnimating];
         [self.webView loadRequest:self.currentRequest];
     }
 }
 
 #pragma mark 向后台注册极光id
 -(void)noticeMovement{
-    [self alert:@"12345"];
+//    [self alert:@"12345"];
     [self getAccountInfo];
 }
 -(void)regiestJpushID{
@@ -146,7 +156,7 @@ typedef void(^CallBack)(NSDictionary*);
                 resonseSerial.acceptableContentTypes = [NSSet setWithObjects:@"application/json", @"text/html", @"text/json", @"text/javascript",@"text/plain", nil];
                 manager.responseSerializer = resonseSerial;
                 [[manager dataTaskWithRequest:req completionHandler:^(NSURLResponse * _Nonnull response, id  _Nullable responseObject, NSError * _Nullable error) {
-                    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+                    dispatch_async(dispatch_get_main_queue(), ^{
                         if (!error) {
                             NSDictionary *dic = [NSJSONSerialization JSONObjectWithData:responseObject options:NSJSONReadingAllowFragments error:nil];
                             NSLog(@"%@",dic);
@@ -162,10 +172,6 @@ typedef void(^CallBack)(NSDictionary*);
 
 #pragma mark webViewDelegate
 - (BOOL)webView:(UIWebView *)webView shouldStartLoadWithRequest:(NSURLRequest *)request navigationType:(UIWebViewNavigationType)navigationType{
-    if ([request.URL isEqual:[NSURL URLWithString:kWebUrl]]) {
-        self.bgView.hidden = NO;
-        [self.indicatorView startAnimating];
-    }
     self.currentRequest = request;
     self.jsonContext = [webView valueForKeyPath:@"documentView.webView.mainFrame.javaScriptContext"];
     self.jsonContext[@"jsObj"] = self;
@@ -186,24 +192,17 @@ typedef void(^CallBack)(NSDictionary*);
         NSLog(@"异常信息：%@", exceptionValue);
     };
     self.RequestTimeOutView.hidden = YES;
-    if (self.backJsonStr && self.backJsonStr.length > 0){
-        
-    }else{
-        [self getAccountInfo];
-    }
 }
 - (void)webView:(UIWebView *)webView didFailLoadWithError:(NSError *)error{
     self.bgView.hidden = YES;
     [self.indicatorView stopAnimating];
     self.RequestTimeOutView.hidden = NO;
-//    [self alert:error.localizedDescription];
 }
 #pragma mark 获取账号信息
 -(void)getAccountInfo{
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 5*NSEC_PER_SEC), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        self.backJsonStr = nil;
         JSValue *jsCallBack = self.jsonContext[@"pusheds"];
-        [jsCallBack callWithArguments:nil];
+        [jsCallBack callWithArguments:@[]];
         if (self.backJsonStr && self.backJsonStr.length > 0){
             [self regiestJpushID];
         }else{
@@ -238,12 +237,12 @@ typedef void(^CallBack)(NSDictionary*);
     NSString *versionStr=[[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleVersion"];
     NSString * appId = @"dp_client_IOS";
     NSDictionary * dic = @{@"version":versionStr, @"appid":appId};
-//    [[[UIAlertView alloc] initWithTitle:@"123" message:versionStr delegate:nil cancelButtonTitle:@"确定" otherButtonTitles: nil] show];
     return [self dictionaryToJson:dic];
 }
 
 #pragma mark 获取极光推送注册ID
 -(void)jPushRegistrationID:(NSString *)jsonStr{
+    self.backJsonStr = nil;
     if (jsonStr && jsonStr.length > 0) {
         self.backJsonStr = jsonStr;
     }
