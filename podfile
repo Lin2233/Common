@@ -1,4 +1,0 @@
-platform :ios, '7.0'
-target 'FenXiaoBao' do
-  pod 'AFNetworking', '~>3.0'
-end
